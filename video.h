@@ -67,8 +67,8 @@ typedef struct
 typedef enum
 {
   unscaled,
-  fullscreen,
   scaled_aspect,
+  fullscreen,
 } video_scale_type;
 
 typedef enum

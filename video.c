@@ -91,6 +91,16 @@ SDL_Surface *screen = NULL;
 SDL_Surface *display = NULL;
 const u32 video_scale = 1;
 
+#define NUMOFVIDEOMODES 3
+struct {
+	u32 x, y;
+} vmodes[NUMOFVIDEOMODES] = {
+	{320, 240},
+	{400, 240},
+	{480, 272}
+};
+u32 display_x = 320, display_y = 240, display_x_pitch = 0, display_offset = 0;
+
 #define get_screen_pixels()                                                 \
   ((u16 *)screen->pixels)                                                   \
 
@@ -3401,13 +3411,13 @@ static void gba_upscale(uint32_t *to, uint32_t *from, uint32_t pitch)
             reg3 |= reg4 + ((reg3 & 0xf7de) << 15);
 
             // Write (g,h)-g
-            *(to + 2*320/2) = reg3;
+            *(to + 2*display_x/2) = reg3;
 //			reg6 &= reg3 >> 16;
             reg3 = (reg3 & 0xf7def7de) >> 1;
 
 
             // Write (a,b,g,h)-(a,g)
-            *(to++ + 320/2) = reg1 + reg3 + 0x10000; // + reg6;
+            *(to++ + display_x/2) = reg1 + reg3 + 0x10000; // + reg6;
 
             // Read d-c
             reg1 = *from;
@@ -3423,12 +3433,12 @@ static void gba_upscale(uint32_t *to, uint32_t *from, uint32_t pitch)
             reg4 = ((reg4 + ((reg3 & 0xf7de) << 15)) >> 16) | ((reg3 & 0xffff) << 16);
 
             // Write i-(h,i)
-            *(to + 2*320/2) = reg4;
+            *(to + 2*display_x/2) = reg4;
 //			reg6 &= reg4;
             reg4 = (reg4 & 0xf7def7de) >> 1;
 
             // Write (c,i)-(b,c,h,i)
-            *(to++ + 320/2) = reg2 + reg4 + 1; // + reg6;
+            *(to++ + display_x/2) = reg2 + reg4 + 1; // + reg6;
 
             // Read f-e
             reg2 = *from;
@@ -3448,12 +3458,12 @@ static void gba_upscale(uint32_t *to, uint32_t *from, uint32_t pitch)
             // Write (j,k)-j
             reg3 >>= 16;
             reg5 = reg3 | ((reg5 + ((reg3 & 0xf7de) >> 1)) << 16);
-            *(to + 2*320/2) = reg5;
+            *(to + 2*display_x/2) = reg5;
 //			reg6 &= reg5 >> 16;
             reg5 = (reg5 & 0xf7def7de) >> 1;
 
             // Write (d,e,j,k)-(d,j)
-            *(to++ + 320/2) = reg4 + reg5 + 0x10000; // + reg6;
+            *(to++ + display_x/2) = reg4 + reg5 + 0x10000; // + reg6;
 
             // Write f-(e,f)
             reg3 = (reg2 & 0xf7def7de) >> 1;
@@ -3465,34 +3475,159 @@ static void gba_upscale(uint32_t *to, uint32_t *from, uint32_t pitch)
             // Write l-(k,l)
             reg3 = (reg1 & 0xf7def7de) >> 1;
             reg1 = (reg1 & 0xffff0000) | ((reg3 + (reg3 >> 16)) & 0xffff);
-            *(to + 2*320/2) = reg1;
+            *(to + 2*display_x/2) = reg1;
 //			reg6 &= reg1;
             reg1 = (reg1 & 0xf7def7de) >> 1;
 
             // Write (f,l)-(e,f,k,l)
-            *(to++ + 320/2) = reg1 + reg2 + 1; // + reg6;
+            *(to++ + display_x/2) = reg1 + reg2 + 1; // + reg6;
         }
 
-        to += 2*320/2;
+        to += display_x_pitch + display_x; // (x-320)/2 + 2 * x/2
         from += 240/2 + 2*pitch/2;
     }
 
 }
 
+void zero_vmem()
+{
+	memset(display->pixels, 0, display_y*display_x*4);
+	SDL_Flip(display);
+	memset(display->pixels, 0, display_y*display_x*4);
+	SDL_Flip(display);
+}
+
+/*
+	The idea taken from http://www.compuphase.com/graphic/scale.htm
+*/
+/*
+void gba_upscale_480x272(u32 *dst, u32 *src)
+{
+	int midh = 272 >> 1;
+	int Eh = 0;
+	int source = 0, target = 0;
+	int dh = 0;
+	int i, j;
+	u32 a, b;
+
+	for (i = 0; i < 272; i++)
+	{
+		//Ew = 0;
+		source = dh * 160;
+
+		for (j = 0; j < 480/4; j++)
+		{
+
+			__builtin_prefetch(dst + 4, 1);
+			__builtin_prefetch(src + source, 0);
+
+			a = src[source];
+
+			#define AVERAGE(z, x) ((((z) & 0xF7DEF7DE) >> 1) + (((x) & 0xF7DEF7DE) >> 1))
+			if(Eh >= midh) { // average + 320
+				a = AVERAGE(a, src[source+160]);
+			}
+			#undef AVERAGE
+
+			b = a & 0xFFFF0000;
+			b |= (b >> 16);
+
+			a &= 0xFFFF;
+			a |= (a << 16); 
+
+			*dst++ = a;
+			*dst++ = b;
+
+			source += 1;
+
+		}
+		Eh += 160; if(Eh >= 272) { Eh -= 272; dh++; } // 160 - real gba y size
+	}
+}
+*/
+void gba_upscale_480x240(u32 *dst, u32 *src)
+{
+	int source = 0;
+	int i, j;
+	u32 a, b, c, d, e, f, g, h, a0, b0, c0, d0;
+
+	for (i = 0; i < 240/3; i++)
+	{
+		for (j = 0; j < 480/8; j++)
+		{
+
+			__builtin_prefetch(dst + 4, 1);
+
+			a = *src;
+			c = *(src + 1);
+			e = *(src + 160);
+			g = *(src + 160 + 1);
+
+			#define DOUBLEHI(Z) (((Z) & 0xFFFF0000) + ((Z) >> 16))
+			#define DOUBLELO(Z) (((Z) & 0xFFFF) + ((Z) << 16))
+
+			b = DOUBLEHI(a);
+			a = DOUBLELO(a);
+			d = DOUBLEHI(c);
+			c = DOUBLELO(c);
+
+			f = DOUBLEHI(e);
+			e = DOUBLELO(e);
+			h = DOUBLEHI(g);
+			g = DOUBLELO(g);
+
+			#define AVERAGE(z, x) ((((z) & 0xF7DEF7DE) >> 1) + (((x) & 0xF7DEF7DE) >> 1))
+
+			a0 = AVERAGE(a, e);
+			b0 = AVERAGE(b, f);
+			c0 = AVERAGE(c, g);
+			d0 = AVERAGE(d, h);
+
+			*dst = a; *(dst + 240) = a0; *(dst++ + 480) = e;
+			*dst = b; *(dst + 240) = b0; *(dst++ + 480) = f;
+			*dst = c; *(dst + 240) = c0; *(dst++ + 480) = g;
+			*dst = d; *(dst + 240) = d0; *(dst++ + 480) = h;
+
+			src += 2;
+		}
+		src += 240/2 + 40*2;
+		dst += 480;
+	}
+}
+
 void update_normal(void)
 {
-	SDL_BlitSurface(screen,NULL,display,NULL);
+	SDL_Rect dstrect;
+
+	dstrect.x = (display_x - 320) / 2;
+	dstrect.y = (display_y - 240) / 2;
+
+	SDL_BlitSurface(screen, NULL, display, &dstrect);
 	SDL_Flip(display);
 }
 
 void update_display(void)
 {
+	SDL_Rect dstrect;
+
 	if (!screen_scale)
-		SDL_BlitSurface(screen,NULL,display,NULL);
+	{
+		dstrect.x = (display_x - 320) / 2;
+		dstrect.y = (display_y - 240) / 2;
+		SDL_BlitSurface(screen, NULL, display, &dstrect);
+	}
 	else
 	{
 		uint32_t *src = (uint32_t *)screen->pixels + 20 + 80 * (320 - 240);
-		gba_upscale((uint32_t*)display->pixels, src, 320 - 240);
+		if(SDL_MUSTLOCK(display)) SDL_LockSurface(display);
+
+		// if 480x272 and screen_scale == fullscreen
+		// otherwise - do ayla's upscale to 320x240 and center it
+		if(display_x == 480 && screen_scale == fullscreen) 
+			gba_upscale_480x240((u32 *)display->pixels + (display_y - 240) / 2 * display_x / 2, (u32 *)src); 
+		else gba_upscale((uint32_t*)display->pixels + display_offset, src, 320 - 240);
+
+		if(SDL_MUSTLOCK(display)) SDL_UnlockSurface(display);
 	}
 
 	SDL_Flip(display);
@@ -3653,14 +3788,27 @@ void init_video()
 void init_video()
 {
 #ifdef ZAURUS
+  u32 vmode;
+
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0)
   {
 	  printf("Failed to initialize SDL !!\n");
 	  return; // for debug
 //	  exit(1);
   }
-  //screen = SDL_SetVideoMode(320, 240, 16, SDL_FULLSCREEN);
-  display = SDL_SetVideoMode(320, 240, 16, SDL_HWSURFACE | SDL_DOUBLEBUF);
+
+  for(vmode = NUMOFVIDEOMODES-1; vmode >= 0; vmode--)
+  {
+    if(SDL_VideoModeOK(vmodes[vmode].x, vmodes[vmode].y, 16, SDL_HWSURFACE | SDL_DOUBLEBUF) != 0)
+    {
+      display_x = vmodes[vmode].x;
+      display_y = vmodes[vmode].y;
+      display_x_pitch = (display_x - 320) / 2; 
+      display_offset = display_x_pitch/2 + (display_y - 240) / 2 * display_x / 2;
+      display = SDL_SetVideoMode(display_x, display_y, 16, SDL_HWSURFACE | SDL_DOUBLEBUF);
+      break;      
+    }
+  }
   screen = SDL_CreateRGBSurface(SDL_SWSURFACE,320,240,16,
 								display->format->Rmask,
 								display->format->Gmask,
@@ -3843,6 +3991,7 @@ void clear_screen(u16 color)
     }
     dest_ptr += line_skip;
   }
+  zero_vmem();
 }
 
 #endif

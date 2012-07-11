@@ -523,9 +523,9 @@ u32 update_gba()
             continue;
 
           update_gbc_sound(cpu_ticks);
-          synchronize();
-
           update_screen();
+
+          synchronize();
 
           if(update_backup_flag)
             update_backup();
@@ -575,7 +575,7 @@ u32 update_gba()
 }
 
 u64 last_screen_timestamp = 0;
-u32 frame_speed = 15000;
+u32 frame_speed = 16667;
 
 #ifdef PSP_BUILD
 
@@ -687,7 +687,7 @@ void synchronize()
   if((time_delta < frame_speed) && synchronize_flag)
   {
     delay_us(frame_speed - time_delta);
-  }
+  };
 #endif
   frames++;
 
@@ -756,7 +756,7 @@ void synchronize()
 	  //gettimeofday(&now, NULL);
 	  skipped_num = 0;
 	  next1 = now;
-    } else {
+    } else { // 
       if(skipped_num < frameskip_value) {
         skipped_num++;
 	    skipped_num_frame--;

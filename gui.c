@@ -719,7 +719,7 @@ s32 load_config_file()
       s32 menu_button = -1;
       file_read_array(config_file, file_options);
 
-      screen_scale = file_options[0] % 2;
+      screen_scale = file_options[0] % 3; // 2
       screen_filter = file_options[1] % 2;
       global_enable_audio = file_options[2] % 2;
 #ifdef ZAURUS
@@ -1099,7 +1099,7 @@ u32 menu(u16 *original_screen)
 
   u8 *scale_options[] =
   {
-    "normal", "fullscreen"
+    "normal", "medium", "fullscreen"
   };
 
   u8 *frameskip_options[] = { "automatic", "manual", "off" };
@@ -1154,7 +1154,7 @@ u32 menu(u16 *original_screen)
   menu_option_type graphics_sound_options[] =
   {
     string_selection_option(NULL, "Display scaling", scale_options,
-     (u32 *)(&screen_scale), 2,
+     (u32 *)(&screen_scale), 3,
      "Determines how the GBA screen is resized in relation to the entire\n"
      "screen. Select unscaled 3:2 for GBA resolution, scaled 3:2 for GBA\n"
      "aspect ratio scaled to fill the height of the PSP screen, and\n"

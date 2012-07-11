@@ -4,7 +4,7 @@
 
 # Global definitions
 
-PREFIX  = /Developer/dingux/mipsel-linux-uclibc
+PREFIX  = /dingux/mipsel-linux-uclibc
 CC        = mipsel-linux-uclibc-gcc
 STRIP     = mipsel-linux-uclibc-strip
 
@@ -14,11 +14,13 @@ BIN       = gpsp.dge
 
 # Platform specific definitions 
 
+EXTRA_OPT = 
+
 COMMON_OPT = -g
-COMMON_OPT += -O2 -fno-builtin -fomit-frame-pointer
+COMMON_OPT += -O2 -fno-builtin -fomit-frame-pointer -ffast-math
 
 VPATH      += ..
-CFLAGS     += -DZAURUS
+CFLAGS     += -DZAURUS $(EXTRA_OPT)
 # NOTE: -funroll-loops will slow down compiling considerably
 CFLAGS     += -march=mips32 -G0 -mtune=r4600
 CFLAGS     += $(COMMON_OPT)
