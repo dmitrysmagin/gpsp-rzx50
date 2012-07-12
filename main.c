@@ -46,6 +46,11 @@ debug_state current_debug_state = STEP;
 
 //u32 breakpoint_value = 0;
 
+#ifdef ZAURUS
+u64 frame_count_initial_timestamp = 0;
+u64 last_frame_interval_timestamp;
+#endif
+
 frameskip_type current_frameskip_type = auto_frameskip;
 u32 frameskip_value = 4;
 u32 random_skip = 0;
@@ -225,6 +230,17 @@ int main(int argc, char *argv[])
 
   video_resolution_large();
 
+	if(argc > 1) {
+		u32 i;
+		extern u32 z_key[10]; // input.c
+		for(i = 1; i < argc; i++)
+			if(strcmp(argv[i], "--swapshifts") == 0) {
+				z_key[0] = SDLK_BACKSPACE;
+				z_key[1] = SDLK_TAB;
+				break;
+			}
+	}
+
   if(argc > 1)
   {
     if(load_gamepak(argv[1]) == -1)
@@ -281,6 +297,7 @@ int main(int argc, char *argv[])
   execute_arm_translate(execute_cycles);
 #else
 #ifdef ZAURUS
+  get_ticks_us(&frame_count_initial_timestamp);
 //    execute_arm(execute_cycles);
 	execute_arm_translate(execute_cycles);
 #else
@@ -409,6 +426,9 @@ void trigger_ext_event()
   get_ticks_us(benchmark_ticks + event_number);
   event_number++;
 }
+
+static u32 fps = 60;
+static u32 frames_drawn = 60;
 
 u32 update_gba()
 {
@@ -575,7 +595,7 @@ u32 update_gba()
 }
 
 u64 last_screen_timestamp = 0;
-u32 frame_speed = 16667;
+u32 frame_speed = 15000;
 
 #ifdef PSP_BUILD
 
@@ -661,6 +681,90 @@ void synchronize()
 */
 }
 
+#if 0 //elif defined(ZAURUS)
+
+u32 real_frame_count = 0;
+u32 virtual_frame_count = 0;
+u32 num_skipped_frames = 0;
+u32 interval_skipped_frames;
+u32 frames;
+
+const u32 frame_interval = 60;
+
+void synchronize()
+{
+  u64 new_ticks;
+  u64 time_delta;
+
+  get_ticks_us(&new_ticks);
+  time_delta = new_ticks - last_screen_timestamp;
+  last_screen_timestamp = new_ticks;
+
+  skip_next_frame = 0;
+  virtual_frame_count++;
+
+  real_frame_count = ((new_ticks -
+    frame_count_initial_timestamp) * 3) / 50000;
+
+  if(real_frame_count >= virtual_frame_count)
+  {
+    if((real_frame_count > virtual_frame_count) &&
+     (current_frameskip_type == auto_frameskip) &&
+     (num_skipped_frames < frameskip_value))
+    {
+      skip_next_frame = 1;
+      num_skipped_frames++;
+    }
+    else
+    {
+      virtual_frame_count = real_frame_count;
+      num_skipped_frames = 0;
+    }
+  }
+
+  frames++;
+
+  if(frames == frame_interval)
+  {
+    u32 new_fps;
+    u32 new_frames_drawn;
+
+    time_delta = new_ticks - last_frame_interval_timestamp;
+    new_fps = (u64)((u64)1000000 * (u64)frame_interval) / time_delta;
+    new_frames_drawn =
+     (frame_interval - interval_skipped_frames) * (60 / frame_interval);
+
+    // Left open for rolling averages
+    fps = new_fps;
+    frames_drawn = new_frames_drawn;
+
+    last_frame_interval_timestamp = new_ticks;
+    interval_skipped_frames = 0;
+    frames = 0;
+  }
+
+  if(current_frameskip_type == manual_frameskip)
+  {
+    frameskip_counter = (frameskip_counter + 1) %
+     (frameskip_value + 1);
+    if(random_skip)
+    {
+      if(frameskip_counter != (rand() % (frameskip_value + 1)))
+        skip_next_frame = 1;
+    }
+    else
+    {
+      if(frameskip_counter)
+        skip_next_frame = 1;
+    }
+  }
+
+  interval_skipped_frames += skip_next_frame;
+
+  if(!synchronize_flag)
+    print_string("--FF--", 0xFFFF, 0x000, 0, 0);
+}
+#endif
 #else
 
 u32 ticks_needed_total = 0;
@@ -687,7 +791,7 @@ void synchronize()
   if((time_delta < frame_speed) && synchronize_flag)
   {
     delay_us(frame_speed - time_delta);
-  };
+  }
 #endif
   frames++;
 
@@ -756,7 +860,7 @@ void synchronize()
 	  //gettimeofday(&now, NULL);
 	  skipped_num = 0;
 	  next1 = now;
-    } else { // 
+    } else {
       if(skipped_num < frameskip_value) {
         skipped_num++;
 	    skipped_num_frame--;
@@ -863,7 +967,15 @@ void delay_us(u32 us_count)
 
 void get_ticks_us(u64 *ticks_return)
 {
+#ifdef ZAURUS
+  struct timeval current_time;
+  gettimeofday(&current_time, NULL);
+
+  *ticks_return =
+   (u64)current_time.tv_sec * 1000000 + current_time.tv_usec;
+#else
   *ticks_return = (SDL_GetTicks() * 1000);
+#endif
 }
 
 #endif

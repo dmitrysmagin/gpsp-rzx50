@@ -21,13 +21,8 @@
 #ifdef ZAURUS
 /* L,R,Down,Up,Left,Right,Start,Select,B,A */
 u32 z_key[10]={
-#ifdef SWAPLR
-	SDLK_BACKSPACE,
-	SDLK_TAB,
-#else
 	SDLK_TAB,
 	SDLK_BACKSPACE,
-#endif
 	SDLK_DOWN,
 	SDLK_UP,
 	SDLK_LEFT,
