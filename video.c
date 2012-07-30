@@ -3252,7 +3252,7 @@ void update_scanline()
   u32 dispcnt = io_registers[REG_DISPCNT];
   u32 display_flags = (dispcnt >> 8) & 0x1F;
   u32 vcount = io_registers[REG_VCOUNT];
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
   u16 *screen_offset = get_screen_pixels() + 40 + ((vcount + 40) * pitch);
 #else
   u16 *screen_offset = get_screen_pixels() + (vcount * pitch);
@@ -3491,9 +3491,9 @@ static void gba_upscale(uint32_t *to, uint32_t *from, uint32_t pitch)
 
 void zero_vmem()
 {
-	memset(display->pixels, 0, display_y*display_x*4);
+	SDL_FillRect(display,NULL,SDL_MapRGBA(display->format, 0, 0, 0, 255));
 	SDL_Flip(display);
-	memset(display->pixels, 0, display_y*display_x*4);
+	SDL_FillRect(display,NULL,SDL_MapRGBA(display->format, 0, 0, 0, 255));
 	SDL_Flip(display);
 }
 
@@ -3684,7 +3684,7 @@ u32 frame_to_render;
 
 void update_screen()
 {
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
   if (!screen)
 		return;
   if(!skip_next_frame)
@@ -3787,7 +3787,7 @@ void init_video()
 
 void init_video()
 {
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
   u32 vmode;
 
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0)
@@ -3933,7 +3933,7 @@ void video_resolution_large()
 {
   if(current_scale != unscaled)
   {
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
     resolution_width = 320;
     resolution_height = 240;
 #else
@@ -3949,7 +3949,7 @@ void video_resolution_small()
 {
   if(current_scale != screen_scale)
   {
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
 #else
     current_scale = screen_scale;
     screen = SDL_SetVideoMode(small_resolution_width * video_scale,
@@ -3998,7 +3998,7 @@ void clear_screen(u16 color)
 
 u16 *copy_screen()
 {
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
 	u32 pitch = get_screen_pitch();
 	u16 *copy = malloc(240 * 160 * 2);
 	u16 *dest_ptr = copy;
@@ -4024,7 +4024,7 @@ u16 *copy_screen()
 void blit_to_screen(u16 *src, u32 w, u32 h, u32 dest_x, u32 dest_y)
 {	
   u32 pitch = get_screen_pitch();
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
   u16 *dest_ptr = get_screen_pixels();
 #else
   u16 *dest_ptr = get_screen_pixels() + dest_x + (dest_y * pitch);
@@ -4095,7 +4095,7 @@ void print_string_ext(const char *str, u16 fg_color, u16 bg_color,
       str_index++;
     }
 
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
     if(current_x >= 320)
 #else
     if(current_x >= 480)

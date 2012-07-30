@@ -62,12 +62,12 @@
 # destroys ecx and edx
 
 .macro collapse_flag offset, shift
-  mov _reg + \offset, %ecx
+  mov \offset(%ebx), %ecx
   shl $\shift, %ecx
   or %ecx, %edx
 .endm
 
-.macro collapse_flags
+.macro collapse_flags_no_update
   xor %edx, %edx
   collapse_flag REG_N_FLAG, 31
   collapse_flag REG_Z_FLAG, 30
@@ -76,6 +76,11 @@
   mov REG_CPSR(%ebx), %ecx
   and $0xFF, %ecx
   or %ecx, %edx
+.endm
+
+
+.macro collapse_flags
+  collapse_flags_no_update
   mov %edx, REG_CPSR(%ebx)
 .endm
 
@@ -422,16 +427,19 @@ ext_store_u32:
 # %edx = store_mask
 
 _execute_store_cpsr:
-  mov %edx, REG_SAVE(%ebx)        # write out store_mask
-  mov %ecx, REG_SAVE2(%ebx)       # write out PC too
+  mov %edx, REG_SAVE(%ebx)        # save store_mask
+  mov %ecx, REG_SAVE2(%ebx)       # save PC too
+
   mov %eax, %ecx                  # ecx = new_cpsr
   and %edx, %ecx                  # ecx = new_cpsr & store_mask
   mov REG_CPSR(%ebx), %eax        # eax = cpsr
   not %edx                        # edx = ~store_mask
   and %edx, %eax                  # eax = cpsr & ~store_mask
   or %ecx, %eax                   # eax = new cpsr combined with old
-  extract_flags                   # extract flags
+
   call _execute_store_cpsr_body   # do the dirty work in this C function
+
+  extract_flags                   # pull out flag vars from new CPSR
 
   cmp $0, %eax                    # see if return value is 0
   jnz changed_pc_cpsr             # might have changed the PC
@@ -469,8 +477,16 @@ _execute_arm_translate:
   movl %eax, %edi             # load edi cycle counter
 
   movl REG_PC(%ebx), %eax     # load PC
+
+  testl $0x20, REG_CPSR(%ebx)
+  jnz 1f
+
   call _block_lookup_address_arm
   jmp *%eax                   # jump to it
+
+1:
+  call _block_lookup_address_thumb
+  jmp *%eax
 
 _step_debug_x86:
   collapse_flags

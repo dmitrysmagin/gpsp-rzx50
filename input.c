@@ -18,7 +18,7 @@
  */
 
 #include "common.h"
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
 /* L,R,Down,Up,Left,Right,Start,Select,B,A */
 u32 z_key[10]={
 	SDLK_TAB,
@@ -351,7 +351,7 @@ void init_input()
 }
 
 #else
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
 u32 key_map(SDLKey key_sym)
 {
   if(key_sym == z_key[0])
@@ -586,7 +586,7 @@ u32 update_input()
 			  break;
 			}
 
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
 			case SDLK_5:
 #else
 			case SDLK_F5:
@@ -602,7 +602,7 @@ u32 update_input()
 			  break;
 			}
 
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
 			case SDLK_7:
 #else
 			case SDLK_F7:
@@ -617,7 +617,7 @@ u32 update_input()
 			  return 1;
 			}
 
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
 			case SDLK_1:
 #else
 			case SDLK_BACKQUOTE:
@@ -627,7 +627,7 @@ u32 update_input()
 			  break;
 			}
 
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
 			case SDLK_2:
 			{
 			  if(current_frameskip_type == 2)
@@ -730,7 +730,7 @@ void init_input()
     SDL_JoystickOpen(0);
     SDL_JoystickEventState(SDL_ENABLE);
   }
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
   int i = 0;
   char *envp, *j;
   envp = j = getenv ("GPSPKEYS");

@@ -7,24 +7,24 @@ CC        = gcc
 STRIP     = strip
 AS        = as
 
-PREFIX    = /usr
+PREFIX    = 
 OBJS      = main.o cpu.o memory.o video.o input.o sound.o \
-	    cpu_threaded.o gui.o x86_stub.o cheats.o zip.o
+	    cpu_threaded_sl.o gui.o x86_stub.o cheats.o zip.o
 BIN       = gpsp.exe 
 
 # Platform specific definitions 
 
 VPATH      += ..
-CFLAGS     += -fnested-functions
-INCLUDES   = -I${PREFIX}/include `sdl-config --cflags`
-LIBS       = -L${PREFIX}/lib `sdl-config --libs` -mconsole -lz
+INCLUDES   = -I/include/SDL
+CFLAGS     += -DDINGUX_ON_WIN32 ${INCLUDES}
+LIBS       = -mconsole -lz -lSDL
 
 # Compilation:
 
 .SUFFIXES: .c .S
 
 %.o: %.c
-	${CC} ${CFLAGS} ${INCLUDES} -c -o $@ $<
+	${CC} ${CFLAGS} -c -o $@ $<
 
 %.o: %.S
 	${AS} -o $@ $<

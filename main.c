@@ -46,7 +46,7 @@ debug_state current_debug_state = STEP;
 
 //u32 breakpoint_value = 0;
 
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
 u64 frame_count_initial_timestamp = 0;
 u64 last_frame_interval_timestamp;
 #endif
@@ -164,6 +164,10 @@ void init_main()
   flush_translation_cache_bios();
 }
 
+#ifdef DINGUX_ON_WIN32
+#undef main
+#endif
+
 int main(int argc, char *argv[])
 {
   u32 i;
@@ -171,7 +175,7 @@ int main(int argc, char *argv[])
   u32 ticks;
   u32 dispstat;
   u8 load_filename[512];
-	
+
 #ifdef PSP_BUILD
   sceKernelRegisterSubIntrHandler(PSP_VBLANK_INT, 0,
    vblank_interrupt_handler, NULL);
@@ -185,8 +189,13 @@ int main(int argc, char *argv[])
   init_gamepak_buffer();
 
   // Copy the directory path of the executable into main_path
+#ifndef DINGUX_ON_WIN32
   sprintf(main_path, "%s/.gpsp", getenv("HOME"));
   mkdir(main_path, 0755);
+#else
+  sprintf(main_path, ".gpsp");
+  mkdir(main_path);
+#endif
   load_config_file();
 
   gamepak_filename[0] = 0;
@@ -216,7 +225,7 @@ int main(int argc, char *argv[])
 
     quit();
 #endif
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
       printf("Failed to load bios.\n");
       quit();
 #endif
@@ -280,7 +289,7 @@ int main(int argc, char *argv[])
 
       set_gba_resolution(screen_scale);
       video_resolution_small();
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
       clear_screen(0);
       flip_screen();
 #endif
@@ -296,12 +305,13 @@ int main(int argc, char *argv[])
 #ifdef PSP_BUILD
   execute_arm_translate(execute_cycles);
 #else
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
   get_ticks_us(&frame_count_initial_timestamp);
-//    execute_arm(execute_cycles);
-	execute_arm_translate(execute_cycles);
+  execute_arm_translate(execute_cycles);
+  //execute_arm(execute_cycles);
 #else
   execute_arm_translate(execute_cycles);
+  execute_arm(execute_cycles);
 #endif
 #endif
   return 0;
@@ -881,7 +891,7 @@ void synchronize()
 
 //  if(synchronize_flag == 0)
 //    print_string("--FF--", 0xFFFF, 0x000, 0, 0);
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
   //sprintf(char_buffer, "%.1ffps", 1000000.0 / us_needed);
   //print_string("        ", 0xFFFF, 0x000, 40, 30);
   //print_string(char_buffer, 0xFFFF, 0x000, 40, 30);
@@ -967,7 +977,7 @@ void delay_us(u32 us_count)
 
 void get_ticks_us(u64 *ticks_return)
 {
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
   struct timeval current_time;
   gettimeofday(&current_time, NULL);
 

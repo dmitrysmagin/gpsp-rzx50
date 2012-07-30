@@ -24,10 +24,10 @@
 #include <dirent.h>
 #include "common.h"
 
-#define MAX_PATH 1024
+#define MAX__PATH 1024
 
 // Blatantly stolen and trimmed from MZX (megazeux.sourceforge.net)
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
 #define FILE_LIST_ROWS 20
 #define FILE_LIST_POSITION 1
 #define DIR_LIST_POSITION 240
@@ -75,7 +75,7 @@ s32 load_file(u8 **wildcards, u8 *result)
   DIR *current_dir;
   struct dirent *current_file;
   struct stat file_info;
-  u8 current_dir_name[MAX_PATH];
+  u8 current_dir_name[MAX__PATH];
   u8 current_dir_short[81];
   u32 current_dir_length;
   u32 total_filenames_allocated;
@@ -123,9 +123,14 @@ s32 load_file(u8 **wildcards, u8 *result)
     chosen_file = 0;
     chosen_dir = 0;
 
+#ifndef DINGUX_ON_WIN32
 	sprintf(current_dir_name, "%s/.gpsp", getenv("HOME"));
 	mkdir(current_dir_name, 0755);
+#else
+	getcwd(current_dir_name, MAX__PATH);
+#endif
     current_dir = opendir(current_dir_name);
+
 
     do
     {
@@ -236,7 +241,7 @@ s32 load_file(u8 **wildcards, u8 *result)
       flip_screen();
 
       print_string(current_dir_short, COLOR_ACTIVE_ITEM, COLOR_BG, 0, 0);
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
       print_string("Press Cancel to return to the main menu.",
        COLOR_HELP_TEXT, COLOR_BG, 20, 220);
       for(i = 0, current_file_number = i + current_file_scroll_value;
@@ -722,7 +727,7 @@ s32 load_config_file()
       screen_scale = file_options[0] % 3; // 2
       screen_filter = file_options[1] % 2;
       global_enable_audio = file_options[2] % 2;
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
       audio_buffer_size_number = file_options[3] % 4;
 #else
       audio_buffer_size_number = file_options[3] % 11;
@@ -888,7 +893,7 @@ void get_savestate_snapshot(u8 *savestate_filename)
     print_string("---------- --/--/---- --:--:--          ", COLOR_HELP_TEXT,
      COLOR_BG, 10, 40);
   }
-#ifndef ZAURUS
+#if !defined(ZAURUS) && !defined(DINGUX_ON_WIN32)
   blit_to_screen(snapshot_buffer, 240, 160, 230, 40);
 #endif
 }
@@ -1120,7 +1125,7 @@ u32 menu(u16 *original_screen)
 #endif
   u8 *update_backup_options[] = { "Exit only", "Automatic" };
 
-#ifndef ZAURUS
+#if !defined(ZAURUS) && !defined(DINGUX_ON_WIN32)
   u8 *clock_speed_options[] =
   {
     "1", "2", "3", "4", "5", "6", "7"
@@ -1159,7 +1164,7 @@ u32 menu(u16 *original_screen)
      "screen. Select unscaled 3:2 for GBA resolution, scaled 3:2 for GBA\n"
      "aspect ratio scaled to fill the height of the PSP screen, and\n"
      "fullscreen to fill the entire PSP screen.", 2),
-#ifndef ZAURUS
+#if !defined(ZAURUS) && !defined(DINGUX_ON_WIN32)
     string_selection_option(NULL, "Screen filtering", yes_no_options,
      (u32 *)(&screen_filter), 2,
      "Determines whether or not bilinear filtering should be used when\n"
@@ -1222,7 +1227,7 @@ u32 menu(u16 *original_screen)
     cheat_option(7),
     cheat_option(8),
     cheat_option(9),
-#ifndef ZAURUS
+#if !defined(ZAURUS) && !defined(DINGUX_ON_WIN32)
     string_selection_option(NULL, "Clock speed",
      clock_speed_options, &clock_speed_number, 7,
      "Change the clock speed of the device. Higher clock speed will yield\n"
@@ -1263,7 +1268,7 @@ u32 menu(u16 *original_screen)
 
   make_menu(savestate, submenu_savestate, NULL);
 
-#ifndef ZAURUS
+#if !defined(ZAURUS) && !defined(DINGUX_ON_WIN32)
   menu_option_type gamepad_config_options[] =
   {
     gamepad_config_option("D-pad up     ", 0),
@@ -1321,7 +1326,7 @@ u32 menu(u16 *original_screen)
      "Select to enter a menu for loading, saving, and viewing the\n"
      "currently active savestate for this game (or to load a savestate\n"
      "file from another game)", 4),
-#ifndef ZAURUS
+#if !defined(ZAURUS) && !defined(DINGUX_ON_WIN32)
     submenu_option(&gamepad_config_menu, "Configure gamepad input",
      "Select to change the in-game behavior of the PSP buttons and d-pad.",
      6),
@@ -1347,7 +1352,7 @@ u32 menu(u16 *original_screen)
       new_menu = &main_menu;
 
     clear_screen(COLOR_BG);
-#ifndef ZAURUS
+#if !defined(ZAURUS) && !defined(DINGUX_ON_WIN32)
     blit_to_screen(original_screen, 240, 160, 230, 40);
 #endif
     current_menu = new_menu;
@@ -1359,7 +1364,7 @@ u32 menu(u16 *original_screen)
 
   void clear_help()
   {
-#ifndef ZAURUS
+#if !defined(ZAURUS) && !defined(DINGUX_ON_WIN32)
     for(i = 0; i < 6; i++)
     {
       print_string_pad(" ", COLOR_BG, COLOR_BG, 30, 210 + (i * 10), 70);
@@ -1432,7 +1437,7 @@ u32 menu(u16 *original_screen)
          (display_option->line_number * 10) + 40, 36);
       }
     }
-#ifndef ZAURUS
+#if !defined(ZAURUS) && !defined(DINGUX_ON_WIN32)
     print_string(current_option->help_string, COLOR_HELP_TEXT,
      COLOR_BG, 30, 210);
 #endif
@@ -1519,7 +1524,7 @@ u32 menu(u16 *original_screen)
 
   SDL_PauseAudio(0);
 
-#ifdef ZAURUS
+#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
   clear_screen(0);
   flip_screen();
   flip_screen();
