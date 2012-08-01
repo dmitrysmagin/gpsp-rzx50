@@ -313,7 +313,7 @@ u32 gbc_sound_master_volume;
 
 #define gbc_sound_synchronize()                                               \
   while(((gbc_sound_buffer_index - sound_buffer_base) % BUFFER_SIZE) >        \
-   (audio_buffer_size * 2))                                                   \
+   (audio_buffer_size * 3 / 2))                                               \
   {                                                                           \
     SDL_CondWait(sound_cv, sound_mutex);                                      \
   }                                                                           \
@@ -462,7 +462,6 @@ void update_gbc_sound(u32 cpu_ticks)
   if (!global_enable_audio)
 		return;
 
-
   gbc_sound_partial_ticks += fp16_16_fractional_part(buffer_ticks);
   buffer_ticks = fp16_16_to_u32(buffer_ticks);
 
@@ -473,13 +472,15 @@ void update_gbc_sound(u32 cpu_ticks)
   }
 
   SDL_LockMutex(sound_mutex);
-  if(synchronize_flag && current_frameskip_type != auto_frameskip)
+  if(synchronize_flag 
+#ifdef ZAURUS
+    && current_frameskip_type != auto_frameskip
+#endif
+    )
   {
-    if(((gbc_sound_buffer_index - sound_buffer_base) % BUFFER_SIZE) >
-     (audio_buffer_size * 3 / 2))
+    if(((gbc_sound_buffer_index - sound_buffer_base) % BUFFER_SIZE) > (audio_buffer_size * 3 / 2))
     {
-      while(((gbc_sound_buffer_index - sound_buffer_base) % BUFFER_SIZE) >
-       (audio_buffer_size * 3 / 2))
+      while(((gbc_sound_buffer_index - sound_buffer_base) % BUFFER_SIZE) >= (audio_buffer_size * 3 / 2))
       {
         SDL_CondWait(sound_cv, sound_mutex);
       }
@@ -585,13 +586,12 @@ void update_gbc_sound(u32 cpu_ticks)
 
   address16(io_registers, 0x84) = sound_status;
 
-  SDL_CondSignal(sound_cv);
+  gbc_sound_last_cpu_ticks = cpu_ticks;
+  gbc_sound_buffer_index = (gbc_sound_buffer_index + (buffer_ticks * 2)) % BUFFER_SIZE; 
 
+  SDL_CondSignal(sound_cv);
   SDL_UnlockMutex(sound_mutex);
 
-  gbc_sound_last_cpu_ticks = cpu_ticks;
-  gbc_sound_buffer_index =
-   (gbc_sound_buffer_index + (buffer_ticks * 2)) % BUFFER_SIZE;
 }
 
 #define sound_copy_normal()                                                   \
@@ -630,6 +630,11 @@ void sound_callback(void *userdata, Uint8 *stream, int length)
   s16 *stream_base = (s16 *)stream;
   s16 *source;
   s32 current_sample;
+
+  /*printf("base: %i, index: %i, size: %i\n", 
+  sound_buffer_base, 
+  gbc_sound_buffer_index, 
+  (gbc_sound_buffer_index - sound_buffer_base) % BUFFER_SIZE);*/
 
   SDL_LockMutex(sound_mutex);
 
@@ -673,7 +678,6 @@ void sound_callback(void *userdata, Uint8 *stream, int length)
   }
 
   SDL_CondSignal(sound_cv);
-
   SDL_UnlockMutex(sound_mutex);
 }
 

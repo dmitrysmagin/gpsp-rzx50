@@ -691,7 +691,7 @@ void synchronize()
 */
 }
 
-#if 0 //elif defined(ZAURUS)
+#elif 0 //defined(ZAURUS) || defined(DINGUX_ON_WIN32)
 
 u32 real_frame_count = 0;
 u32 virtual_frame_count = 0;
@@ -774,7 +774,7 @@ void synchronize()
   if(!synchronize_flag)
     print_string("--FF--", 0xFFFF, 0x000, 0, 0);
 }
-#endif
+
 #else
 
 u32 ticks_needed_total = 0;
@@ -797,7 +797,7 @@ void synchronize()
   ticks_needed_total += time_delta;
 
   skip_next_frame = 0;
-#ifndef ZAURUS
+#if !defined(ZAURUS) && !defined(DINGUX_ON_WIN32)
   if((time_delta < frame_speed) && synchronize_flag)
   {
     delay_us(frame_speed - time_delta);
@@ -844,7 +844,7 @@ void synchronize()
       if(frameskip_counter)
         skip_next_frame = 1;
     }
-#ifndef ZAURUS
+#if !defined(ZAURUS) //&& !defined(DINGUX_ON_WIN32)
   }
 #else
   } else if(current_frameskip_type == auto_frameskip) {
@@ -977,7 +977,7 @@ void delay_us(u32 us_count)
 
 void get_ticks_us(u64 *ticks_return)
 {
-#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
+#if defined(ZAURUS)// || defined(DINGUX_ON_WIN32)
   struct timeval current_time;
   gettimeofday(&current_time, NULL);
 

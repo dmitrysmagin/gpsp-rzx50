@@ -123,12 +123,7 @@ s32 load_file(u8 **wildcards, u8 *result)
     chosen_file = 0;
     chosen_dir = 0;
 
-#ifndef DINGUX_ON_WIN32
-	sprintf(current_dir_name, "%s/.gpsp", getenv("HOME"));
-	mkdir(current_dir_name, 0755);
-#else
-	getcwd(current_dir_name, MAX__PATH);
-#endif
+    getcwd(current_dir_name, MAX__PATH);
     current_dir = opendir(current_dir_name);
 
 
