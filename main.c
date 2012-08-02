@@ -730,7 +730,7 @@ void synchronize()
       ticks_needed_total = 0;
 
       if(status_display) {
-      if(current_frameskip_type == manual_frameskip) {
+      /*if(current_frameskip_type == manual_frameskip) {
         sprintf(char_buffer, "%s%3dfps %s:%d slot:%d ", synchronize_flag?"  ":">>", fpsw,
           current_frameskip_type==auto_frameskip?"Auto":current_frameskip_type==manual_frameskip?"Manu":"Off ",
           frameskip_value, savestate_slot);
@@ -739,13 +739,9 @@ void synchronize()
          (skipped_num_frame==60&&fpsw>60)?fpsw:skipped_num_frame,
           current_frameskip_type==auto_frameskip?"Auto":current_frameskip_type==manual_frameskip?"Manu":"Off ",
           frameskip_value, savestate_slot);
-      }
+      }*/
     }
 
-    // this is really called in update_status_display()
-    //print_string(char_buffer, 0xFFFF, 0x000, 40, 30);
-    //print_string(ssmsg, 0xF000, 0x000, 180, 30);
-    //strcpy(ssmsg, "     ");
     frames = 0;
     skipped_num_frame = 60;
   }
@@ -809,9 +805,11 @@ void synchronize()
   }
 #endif
 
-  sprintf(char_buffer, "gpSP: %.1fms %.1ffps", us_needed / 1000.0, 1000000.0 / us_needed);
 #if defined(DINGUX_ON_WIN32)
-  SDL_WM_SetCaption(char_buffer, "gpSP");
+	sprintf(char_buffer, "gpSP: %.1fms %.1ffps", us_needed / 1000.0, 1000000.0 / us_needed);
+	SDL_WM_SetCaption(char_buffer, "gpSP");
+#else
+	sprintf(char_buffer, "gpSP: %i us, %i fpus", (u32)us_needed, (u32)(1000000000.0 / us_needed));
 #endif
 
 }
