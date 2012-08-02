@@ -691,90 +691,6 @@ void synchronize()
 */
 }
 
-#elif 0 //defined(ZAURUS) || defined(DINGUX_ON_WIN32)
-
-u32 real_frame_count = 0;
-u32 virtual_frame_count = 0;
-u32 num_skipped_frames = 0;
-u32 interval_skipped_frames;
-u32 frames;
-
-const u32 frame_interval = 60;
-
-void synchronize()
-{
-  u64 new_ticks;
-  u64 time_delta;
-
-  get_ticks_us(&new_ticks);
-  time_delta = new_ticks - last_screen_timestamp;
-  last_screen_timestamp = new_ticks;
-
-  skip_next_frame = 0;
-  virtual_frame_count++;
-
-  real_frame_count = ((new_ticks -
-    frame_count_initial_timestamp) * 3) / 50000;
-
-  if(real_frame_count >= virtual_frame_count)
-  {
-    if((real_frame_count > virtual_frame_count) &&
-     (current_frameskip_type == auto_frameskip) &&
-     (num_skipped_frames < frameskip_value))
-    {
-      skip_next_frame = 1;
-      num_skipped_frames++;
-    }
-    else
-    {
-      virtual_frame_count = real_frame_count;
-      num_skipped_frames = 0;
-    }
-  }
-
-  frames++;
-
-  if(frames == frame_interval)
-  {
-    u32 new_fps;
-    u32 new_frames_drawn;
-
-    time_delta = new_ticks - last_frame_interval_timestamp;
-    new_fps = (u64)((u64)1000000 * (u64)frame_interval) / time_delta;
-    new_frames_drawn =
-     (frame_interval - interval_skipped_frames) * (60 / frame_interval);
-
-    // Left open for rolling averages
-    fps = new_fps;
-    frames_drawn = new_frames_drawn;
-
-    last_frame_interval_timestamp = new_ticks;
-    interval_skipped_frames = 0;
-    frames = 0;
-  }
-
-  if(current_frameskip_type == manual_frameskip)
-  {
-    frameskip_counter = (frameskip_counter + 1) %
-     (frameskip_value + 1);
-    if(random_skip)
-    {
-      if(frameskip_counter != (rand() % (frameskip_value + 1)))
-        skip_next_frame = 1;
-    }
-    else
-    {
-      if(frameskip_counter)
-        skip_next_frame = 1;
-    }
-  }
-
-  interval_skipped_frames += skip_next_frame;
-
-  if(!synchronize_flag)
-    print_string("--FF--", 0xFFFF, 0x000, 0, 0);
-}
-
 #else
 
 u32 ticks_needed_total = 0;
@@ -784,10 +700,11 @@ u32 skipped_num_frame = 60;
 const u32 frame_interval = 60;
 u32 skipped_num = 0;
 
+char char_buffer[64];
+
 void synchronize()
 {
   u64 new_ticks;
-  char char_buffer[64];
   u64 time_delta = 16667;
   u32 fpsw = 60;
 
@@ -807,10 +724,11 @@ void synchronize()
 
   if(frames == 60)
   {
-    if(status_display) {
       us_needed = (float)ticks_needed_total / frame_interval;
       fpsw = (u32)(1000000.0 / us_needed);
       ticks_needed_total = 0;
+
+      if(status_display) {
       if(current_frameskip_type == manual_frameskip) {
         sprintf(char_buffer, "%s%3dfps %s:%d slot:%d ", synchronize_flag?"  ":">>", fpsw,
           current_frameskip_type==auto_frameskip?"Auto":current_frameskip_type==manual_frameskip?"Manu":"Off ",
@@ -821,13 +739,14 @@ void synchronize()
           current_frameskip_type==auto_frameskip?"Auto":current_frameskip_type==manual_frameskip?"Manu":"Off ",
           frameskip_value, savestate_slot);
       }
-    } else
-      strcpy(char_buffer, "                             ");
-    print_string(char_buffer, 0xFFFF, 0x000, 40, 30);
-    print_string(ssmsg, 0xF000, 0x000, 180, 30);
-    strcpy(ssmsg, "     ");
+    }
+
+    // this is really called in update_status_display()
+    //print_string(char_buffer, 0xFFFF, 0x000, 40, 30);
+    //print_string(ssmsg, 0xF000, 0x000, 180, 30);
+    //strcpy(ssmsg, "     ");
     frames = 0;
-	skipped_num_frame = 60;
+    skipped_num_frame = 60;
   }
 
   if(current_frameskip_type == manual_frameskip)
@@ -889,24 +808,11 @@ void synchronize()
   }
 #endif
 
-//  if(synchronize_flag == 0)
-//    print_string("--FF--", 0xFFFF, 0x000, 0, 0);
-#if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
-  //sprintf(char_buffer, "%.1ffps", 1000000.0 / us_needed);
-  //print_string("        ", 0xFFFF, 0x000, 40, 30);
-  //print_string(char_buffer, 0xFFFF, 0x000, 40, 30);
-#else
-  sprintf(char_buffer, "gpSP: %.1fms %.1ffps", us_needed / 1000.0,
-   1000000.0 / us_needed);
+  sprintf(char_buffer, "gpSP: %.1fms %.1ffps", us_needed / 1000.0, 1000000.0 / us_needed);
+#if defined(DINGUX_ON_WIN32)
   SDL_WM_SetCaption(char_buffer, "gpSP");
 #endif
 
-/*
-    sprintf(char_buffer, "%02d %02d %06d %07d", frameskip, (u32)ms_needed,
-     ram_translation_ptr - ram_translation_cache, rom_translation_ptr -
-     rom_translation_cache);
-    print_string(char_buffer, 0xFFFF, 0x0000, 0, 0);
-*/
 }
 
 #endif

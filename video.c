@@ -3595,6 +3595,17 @@ void gba_upscale_480x240(u32 *dst, u32 *src)
 	}
 }
 
+void update_status_display()
+{
+	extern char char_buffer[64];
+
+	if(status_display) {
+		if(SDL_MUSTLOCK(display)) SDL_LockSurface(display);
+		print_string_ext(char_buffer, 0xFFFF, 0, 40, 16, display->pixels, display->pitch / 2, 0);
+		if(SDL_MUSTLOCK(display)) SDL_UnlockSurface(display);
+	}
+}
+
 void update_normal(void)
 {
 	SDL_Rect dstrect;
@@ -3629,6 +3640,8 @@ void update_display(void)
 
 		if(SDL_MUSTLOCK(display)) SDL_UnlockSurface(display);
 	}
+
+	update_status_display();
 
 	SDL_Flip(display);
 }
@@ -4096,7 +4109,7 @@ void print_string_ext(const char *str, u16 fg_color, u16 bg_color,
     }
 
 #if defined(ZAURUS) || defined(DINGUX_ON_WIN32)
-    if(current_x >= 320)
+    if(current_x >= display_x)
 #else
     if(current_x >= 480)
 #endif
