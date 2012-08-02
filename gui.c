@@ -684,7 +684,7 @@ s32 load_game_config_file()
     return 0;
 
   current_frameskip_type = auto_frameskip;
-  frameskip_value = 4;
+  frameskip_value = 0;
   random_skip = 0;
   clock_speed = 4;
 

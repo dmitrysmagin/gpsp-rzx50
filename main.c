@@ -53,7 +53,7 @@ u64 last_frame_interval_timestamp;
 
 u32 frame_limit = 1;
 frameskip_type current_frameskip_type = auto_frameskip;
-u32 frameskip_value = 4;
+u32 frameskip_value = 0;
 u32 random_skip = 0;
 u32 global_cycles_per_instruction = 3;
 u32 skip_next_frame = 0;
