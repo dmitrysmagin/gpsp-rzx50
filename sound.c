@@ -480,10 +480,11 @@ void update_gbc_sound(u32 cpu_ticks)
   {
     if(((gbc_sound_buffer_index - sound_buffer_base) % BUFFER_SIZE) > (audio_buffer_size * 3 / 2))
     {
+    if(frame_limit == 1) 
       while(((gbc_sound_buffer_index - sound_buffer_base) % BUFFER_SIZE) >= (audio_buffer_size * 3 / 2))
-      {
-        SDL_CondWait(sound_cv, sound_mutex);
-      }
+        {
+          SDL_CondWait(sound_cv, sound_mutex);
+        }
 
 #ifdef PSP_BUILD
       if(current_frameskip_type == auto_frameskip)

@@ -64,6 +64,7 @@ typedef enum
 extern u32 cpu_ticks;
 extern u32 frame_ticks;
 extern u32 execute_cycles;
+extern u32 frame_limit;
 extern frameskip_type current_frameskip_type;
 extern u32 frameskip_value;
 extern u32 random_skip;

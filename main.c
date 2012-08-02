@@ -51,6 +51,7 @@ u64 frame_count_initial_timestamp = 0;
 u64 last_frame_interval_timestamp;
 #endif
 
+u32 frame_limit = 1;
 frameskip_type current_frameskip_type = auto_frameskip;
 u32 frameskip_value = 4;
 u32 random_skip = 0;

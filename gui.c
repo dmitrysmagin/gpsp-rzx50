@@ -1166,6 +1166,10 @@ u32 menu(u16 *original_screen)
      "scaling the screen. Selecting this will produce a more even and\n"
      "smooth image, at the cost of being blurry and having less vibrant\n"
      "colors.", 3),
+#else
+    string_selection_option(NULL, "Frame limit", yes_no_options,
+     (u32 *)(&frame_limit), 2,
+     "", 4),
 #endif
     string_selection_option(NULL, "Frameskip type", frameskip_options,
      (u32 *)(&current_frameskip_type), 3,
