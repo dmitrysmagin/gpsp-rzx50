@@ -554,9 +554,10 @@ u32 update_gba()
             continue;
 
           update_gbc_sound(cpu_ticks);
+          synchronize();
           update_screen();
 
-          synchronize();
+          //synchronize();
 
           if(update_backup_flag)
             update_backup();
@@ -805,12 +806,13 @@ void synchronize()
   }
 #endif
 
-#if defined(DINGUX_ON_WIN32)
-	sprintf(char_buffer, "gpSP: %.1fms %.1ffps", us_needed / 1000.0, 1000000.0 / us_needed);
-	SDL_WM_SetCaption(char_buffer, "gpSP");
-#else
-	sprintf(char_buffer, "gpSP: %i us, %i fpus", (u32)us_needed, (u32)(1000000000.0 / us_needed));
-#endif
+	{
+		u32 tmp = (u32)(10000000.0 / us_needed);
+		sprintf(char_buffer, "gpSP: %i.%i ms, %i.%i fps", (u32)us_needed / 1000, (u32)us_needed % 1000 / 100, tmp / 10, tmp % 10);
+		#if defined(DINGUX_ON_WIN32)
+		SDL_WM_SetCaption(char_buffer, "gpSP");
+		#endif
+	}
 
 }
 
