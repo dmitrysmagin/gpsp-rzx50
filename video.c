@@ -3500,7 +3500,7 @@ void zero_vmem()
 /*
 	The idea taken from http://www.compuphase.com/graphic/scale.htm
 */
-/*
+#if 1
 void gba_upscale_480x272(u32 *dst, u32 *src)
 {
 	int midh = 272 >> 1;
@@ -3519,9 +3519,9 @@ void gba_upscale_480x272(u32 *dst, u32 *src)
 		{
 
 			__builtin_prefetch(dst + 4, 1);
-			__builtin_prefetch(src + source, 0);
+			__builtin_prefetch(src + source + 4, 0);
 
-			a = src[source];
+			a = src[source] & 0xF7DEF7DE;
 
 			#define AVERAGE(z, x) ((((z) & 0xF7DEF7DE) >> 1) + (((x) & 0xF7DEF7DE) >> 1))
 			if(Eh >= midh) { // average + 320
@@ -3544,24 +3544,27 @@ void gba_upscale_480x272(u32 *dst, u32 *src)
 		Eh += 160; if(Eh >= 272) { Eh -= 272; dh++; } // 160 - real gba y size
 	}
 }
-*/
-void gba_upscale_480x240(u32 *dst, u32 *src)
+#else
+void gba_upscale_480x272(u32 *dst, u32 *src)
 {
 	int source = 0;
 	int i, j;
-	u32 a, b, c, d, e, f, g, h, a0, b0, c0, d0;
 
 	for (i = 0; i < 240/3; i++)
 	{
+		u32 mf = i % 5; // mf==0,1,2 - render 2->3 lines, mf==3,4 - render 2->4 lines
+
 		for (j = 0; j < 480/8; j++)
 		{
+			u32 a, b, c, d, e, f, g, h, a0, b0, c0, d0;
 
 			__builtin_prefetch(dst + 4, 1);
+			__builtin_prefetch(src + 4, 0);
 
-			a = *src;
-			c = *(src + 1);
-			e = *(src + 160);
-			g = *(src + 160 + 1);
+			a = *src & 0xF7DEF7DE;
+			c = *(src + 1) & 0xF7DEF7DE;
+			e = *(src + 160) & 0xF7DEF7DE;
+			g = *(src + 160 + 1) & 0xF7DEF7DE;
 
 			#define DOUBLEHI(Z) (((Z) & 0xFFFF0000) + ((Z) >> 16))
 			#define DOUBLELO(Z) (((Z) & 0xFFFF) + ((Z) << 16))
@@ -3578,23 +3581,51 @@ void gba_upscale_480x240(u32 *dst, u32 *src)
 
 			#define AVERAGE(z, x) ((((z) & 0xF7DEF7DE) >> 1) + (((x) & 0xF7DEF7DE) >> 1))
 
-			a0 = AVERAGE(a, e);
-			b0 = AVERAGE(b, f);
-			c0 = AVERAGE(c, g);
-			d0 = AVERAGE(d, h);
+			if(mf == 1 || mf == 3) { // render 2->4 lines
+				#if 1
+				u32 a1, b1, c1, d1;
 
-			*dst = a; *(dst + 240) = a0; *(dst++ + 480) = e;
-			*dst = b; *(dst + 240) = b0; *(dst++ + 480) = f;
-			*dst = c; *(dst + 240) = c0; *(dst++ + 480) = g;
-			*dst = d; *(dst + 240) = d0; *(dst++ + 480) = h;
+				a1 = AVERAGE(*(dst - 240), a);
+				b1 = AVERAGE(*(dst - 240 + 1), b);
+				c1 = AVERAGE(*(dst - 240 + 2), c);
+				d1 = AVERAGE(*(dst - 240 + 3), d);
+				
+				a0 = AVERAGE(a, e);
+				b0 = AVERAGE(b, f);
+				c0 = AVERAGE(c, g);
+				d0 = AVERAGE(d, h);
+
+				*dst = a1; *(dst + 240) = a; *(dst + 480) = a0; *(dst++ + 720) = e;
+				*dst = b1; *(dst + 240) = b; *(dst + 480) = b0; *(dst++ + 720) = f;
+				*dst = c1; *(dst + 240) = c; *(dst + 480) = c0; *(dst++ + 720) = g;
+				*dst = d1; *(dst + 240) = d; *(dst + 480) = d0; *(dst++ + 720) = h;
+				#else
+				*dst = a; *(dst + 240) = a; *(dst + 480) = e; *(dst++ + 720) = e;
+				*dst = b; *(dst + 240) = b; *(dst + 480) = f; *(dst++ + 720) = f;
+				*dst = c; *(dst + 240) = c; *(dst + 480) = g; *(dst++ + 720) = g;
+				*dst = d; *(dst + 240) = d; *(dst + 480) = h; *(dst++ + 720) = h;
+				#endif
+
+			} else { // render 2->3 lines
+				a0 = AVERAGE(a, e);
+				b0 = AVERAGE(b, f);
+				c0 = AVERAGE(c, g);
+				d0 = AVERAGE(d, h);
+
+				*dst = a; *(dst + 240) = a0; *(dst++ + 480) = e;
+				*dst = b; *(dst + 240) = b0; *(dst++ + 480) = f;
+				*dst = c; *(dst + 240) = c0; *(dst++ + 480) = g;
+				*dst = d; *(dst + 240) = d0; *(dst++ + 480) = h;
+			}
 
 			src += 2;
 		}
+
 		src += 240/2 + 40*2;
-		dst += 480;
+		dst += 480 + (mf == 1 || mf == 3 ? 480/2 : 0);
 	}
 }
-
+#endif
 void update_status_display()
 {
 	extern char char_buffer[64];
@@ -3635,7 +3666,7 @@ void update_display(void)
 		// if 480x272 and screen_scale == fullscreen
 		// otherwise - do ayla's upscale to 320x240 and center it
 		if(display_x == 480 && screen_scale == fullscreen) 
-			gba_upscale_480x240((u32 *)display->pixels + (display_y - 240) / 2 * display_x / 2, (u32 *)src); 
+			gba_upscale_480x272((u32 *)display->pixels, (u32 *)src); 
 		else gba_upscale((uint32_t*)display->pixels + display_offset, src, 320 - 240);
 
 		if(SDL_MUSTLOCK(display)) SDL_UnlockSurface(display);
