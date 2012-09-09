@@ -4,9 +4,9 @@
 
 # Global definitions
 
-PREFIX  = /dingux/mipsel-linux-uclibc
-CC        = mipsel-linux-uclibc-gcc
-STRIP     = mipsel-linux-uclibc-strip
+PREFIX  = 
+CC        = mipsel-linux-gcc
+STRIP     = mipsel-linux-strip
 
 OBJS      = main.o cpu.o memory.o video.o input.o sound.o gui.o \
             cheats.o zip.o cpu_threaded.o mips_stub.o
@@ -17,7 +17,10 @@ BIN       = gpsp.dge
 EXTRA_OPT = 
 
 COMMON_OPT = -g
-COMMON_OPT += -O2 -fno-builtin -fomit-frame-pointer -ffast-math
+COMMON_OPT += -O2 \
+	-falign-functions -falign-loops -falign-labels -falign-jumps \
+	-fomit-frame-pointer -fno-builtin -fno-common
+
 
 VPATH      += ..
 CFLAGS     += -DZAURUS $(EXTRA_OPT)
