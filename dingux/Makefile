@@ -9,7 +9,7 @@ CC        = mipsel-linux-gcc
 STRIP     = mipsel-linux-strip
 
 OBJS      = main.o cpu.o memory.o video.o input.o sound.o gui.o \
-            cheats.o zip.o cpu_threaded.o mips_stub.o
+            cheats.o zip.o cpu_threaded.o mips_stub.o bios.o
 BIN       = gpsp.dge 
 
 # Platform specific definitions 
@@ -32,7 +32,7 @@ ASFLAGS    += $(COMMON_OPT)
 ASFLAGS    += -march=mips32
 
 INCLUDES   = -I${PREFIX}/include -I${PREFIX}/include/SDL
-LIBS       = -L${PREFIX}/lib -lSDL -lpthread -lz 
+LIBS       = -lSDL -lpthread -lz
 
 # Compilation:
 
