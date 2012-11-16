@@ -32,7 +32,7 @@ ASFLAGS    += $(COMMON_OPT)
 ASFLAGS    += -march=mips32
 
 INCLUDES   = -I${PREFIX}/include -I${PREFIX}/include/SDL
-LIBS       = -lSDL -lpthread -lz
+LIBS       = -lSDL -lpthread -lz -lm
 
 # Compilation:
 
